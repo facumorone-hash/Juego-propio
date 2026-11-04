@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Voidling Store Art</title>
+<style>
+:root{--bg:#05030d;--panel:rgba(14,10,32,.88);--line:rgba(170,150,255,.22);--text:#ece8ff;--dim:#9a93c2;--accent:#ff9a3c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;padding:24px 16px 60px}
+header{max-width:1400px;margin:0 auto 18px;display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px}
+h1{font-size:28px;font-weight:900;letter-spacing:.18em;background:linear-gradient(180deg,#fff 0%,#ffd2a8 45%,#ff8a3c 70%,#9b5cff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+h1 small{font-size:13px;letter-spacing:.12em;color:var(--dim);-webkit-text-fill-color:var(--dim);margin-left:10px;font-weight:600}
+.controls{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;font-size:14px}
+.controls label{display:flex;gap:6px;align-items:center;color:var(--dim)}
+input[type=number],select{font:inherit;background:#140e2c;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px;width:96px}
+select{width:auto}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:rgba(20,14,44,.75);color:var(--text);padding:8px 14px;border-radius:9px;font-weight:700;letter-spacing:.06em}
+button:hover{background:rgba(48,32,96,.85)}
+button.primary{background:linear-gradient(180deg,#ff9a3c,#e8622a);border-color:#ffb36b;color:#1a0b02}
+#status{color:var(--dim);font-size:13px;min-width:200px}
+.note{max-width:1400px;margin:0 auto 18px;color:var(--dim);font-size:13.5px;line-height:1.5}
+.grid{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.card.wide{grid-column:1/-1}
+.card .prev{background:repeating-conic-gradient(#1a1430 0 25%,#120d24 0 50%) 0 0/16px 16px;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.card canvas{max-width:100%;height:auto;display:block}
+.card .meta{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.card .nm{font-weight:800}
+.card .sz{color:var(--accent);font-variant-numeric:tabular-nums;font-size:13px}
+.card .wh{color:var(--dim);font-size:12.5px}
+.card .row{display:flex;gap:8px;flex-wrap:wrap}
+h2{max-width:1400px;margin:34px auto 12px;font-size:16px;letter-spacing:.16em;color:var(--dim)}
+#thumbs{max-width:1400px;margin:0 auto;display:flex;flex-wrap:wrap;gap:22px;align-items:flex-end;background:#1b2838;padding:18px;border-radius:12px}
+#thumbs figure{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+#thumbs figcaption{font-size:11.5px;color:#8f98a0}
+#thumbs canvas{display:block}
+</style>
+</head>
+<body>
+<header>
+  <h1>VOIDLING<small>GENERADOR DE ARTE DE TIENDA</small></h1>
+  <div class="controls">
+    <label>Semilla <input id="seed" type="number" value="7" min="1"></label>
+    <button id="reroll">Otra semilla</button>
+    <label>Frase <select id="lang"><option value="en">English</option><option value="es">Español</option></select></label>
+    <label><input id="tag" type="checkbox"> Mostrar frase</label>
+    <label><input id="extras" type="checkbox" checked> Extras de prensa</label>
+    <button id="regen">Regenerar</button>
+    <button id="all" class="primary">Descargar todo (.zip)</button>
+    <span id="status"></span>
+  </div>
+</header>
+<p class="note"><b>Reglas de Steam:</b> las cápsulas de la tienda solo pueden llevar arte y el logo/nombre del juego (nada de frases, citas, premios ni descuentos). Por eso las versiones para Steam van <b>sin frase</b>; activa "Mostrar frase" para las variantes de itch.io, redes y prensa.<br>Cada imagen se compone con el render del juego (sprites procedurales, fondo y agujero negro de <code>js/render.js</code>) más capas de arte clave en alta resolución. La misma semilla siempre da la misma imagen. "Descargar todo" incluye las versiones sin frase (Steam) y con frase EN/ES, el <code>.ico</code> y los extras de prensa. Exportación automática: <code>cd tools/store-art &amp;&amp; npm install &amp;&amp; node export.js</code>.</p>
+<div class="grid" id="grid"></div>
+<h2>PRUEBA DE MINIATURA · tamaños reales en los que Steam las muestra (fondo azul de Steam)</h2>
+<div id="thumbs"></div>
+
+<script>
+// Math.random se reemplaza durante cada render por un generador con semilla (ver art.js).
+</script>
+<script src="../../js/config.js"></script>
+<script src="../../js/core.js"></script>
+<script src="../../js/render.js"></script>
+<script src="art.js"></script>
+<script>
+(function () {
+  const A = window.StoreArt;
+  const $ = (id) => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  if (params.get('seed')) $('seed').value = params.get('seed');
+  const canvases = {};
+  const opts = () => ({ seed: +$('seed').value || A.SEED, lang: $('lang').value, tagline: $('tag').checked });
+
+  function download(blob, name) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  const fileName = (a, o) => a.file.split('/').pop() + (a.text && o.tagline ? '_frase_' + o.lang : '') + '.png';
+
+  function buildGrid() {
+    const grid = $('grid');
+    grid.innerHTML = '';
+    for (const a of A.ASSETS) {
+      if (a.extra && !$('extras').checked) continue;
+      const card = document.createElement('div');
+      card.className = 'card' + (a.w / a.h > 2.5 && a.w > 2000 ? ' wide' : '');
+      const prev = document.createElement('div'); prev.className = 'prev';
+      const cv = document.createElement('canvas'); canvases[a.id] = cv;
+      if (a.w <= 256) cv.style.width = a.w + 'px';
+      prev.appendChild(cv);
+      const meta = document.createElement('div'); meta.className = 'meta';
+      meta.innerHTML = '<span class="nm">' + a.name + '</span><span class="sz">' + a.w + '×' + a.h + '</span>';
+      const wh = document.createElement('div'); wh.className = 'wh'; wh.textContent = a.where;
+      const row = document.createElement('div'); row.className = 'row';
+      const b = document.createElement('button'); b.textContent = 'Descargar PNG';
+      b.onclick = () => cv.toBlob((bl) => download(bl, fileName(a, opts())), 'image/png');
+      row.appendChild(b);
+      if (a.ico) {
+        const bi = document.createElement('button'); bi.textContent = 'Descargar .ico';
+        bi.onclick = async () => download(new Blob([await A.buildIco(opts().seed)], { type: 'image/x-icon' }), 'voidling.ico');
+        row.appendChild(bi);
+      }
+      card.append(prev, meta, wh, row);
+      grid.appendChild(card);
+    }
+  }
+
+  let job = 0;
+  async function renderAll() {
+    const my = ++job;
+    const o = opts();
+    $('status').textContent = 'Renderizando…';
+    for (const a of A.ASSETS) {
+      if (my !== job) return;
+      const cv = canvases[a.id];
+      if (!cv) continue;
+      A.render(a, cv, o);
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    renderThumbs();
+    $('status').textContent = 'Listo · semilla ' + o.seed;
+  }
+
+  function thumb(id, w, h, label) {
+    const src = canvases[id];
+    if (!src || !src.width) return;
+    const f = document.createElement('figure');
+    const c = document.createElement('canvas');
+    const d = window.devicePixelRatio || 1;
+    c.width = Math.round(w * d); c.height = Math.round(h * d); c.style.width = w + 'px'; c.style.height = h + 'px';
+    const g = c.getContext('2d'); g.imageSmoothingQuality = 'high';
+    g.drawImage(src, 0, 0, c.width, c.height);
+    const cap = document.createElement('figcaption'); cap.textContent = label + ' · ' + w + '×' + h;
+    f.append(c, cap); $('thumbs').appendChild(f);
+  }
+  function renderThumbs() {
+    $('thumbs').innerHTML = '';
+    thumb('header', 460, 215, 'Header en la página');
+    thumb('header', 292, 136, 'Header en listas');
+    thumb('header', 184, 86, 'Header en carrito/wishlist');
+    thumb('small', 231, 87, 'Small capsule');
+    thumb('small', 120, 45, 'Small en búsqueda');
+    thumb('main', 308, 176, 'Main reducida');
+    thumb('vertical', 187, 224, 'Vertical en rebajas');
+    thumb('library_capsule', 100, 150, 'Biblioteca (pequeña)');
+    thumb('community_icon', 32, 32, 'Icono comunidad');
+    thumb('app_icon', 32, 32, 'Icono app');
+    thumb('app_icon', 16, 16, 'Icono 16');
+  }
+
+  $('regen').onclick = renderAll;
+  $('reroll').onclick = () => { $('seed').value = 1 + Math.floor(Math.random() * 9999); renderAll(); };
+  $('seed').onchange = renderAll; $('lang').onchange = renderAll; $('tag').onchange = renderAll;
+  $('extras').onchange = () => { buildGrid(); renderAll(); };
+  $('all').onclick = async () => {
+    const o = opts();
+    $('status').textContent = 'Preparando ZIP…';
+    const files = await A.exportList({ seed: o.seed, only: A.ASSETS.filter((a) => !a.extra || $('extras').checked).map((a) => a.id) });
+    download(A.buildZip(files), 'voidling-store-art-seed' + o.seed + '.zip');
+    $('status').textContent = 'ZIP descargado (' + files.length + ' archivos)';
+  };
+
+  // API para el exportador headless (export.js)
+  A.exportAll = async function (seed, only) {
+    const files = await A.exportList({ seed: seed || A.SEED, only });
+    const b64 = (u8) => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+    return files.map((f) => ({ path: f.path, b64: b64(f.bytes) }));
+  };
+
+  const start = () => {
+    A.init();
+    A.ready = true;
+    if (params.get('noui') === '1') return;
+    buildGrid(); renderAll();
+  };
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(start); else start();
+})();
+</script>
+</body>
+</html>

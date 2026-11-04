@@ -1,0 +1,23 @@
+// Script de SteamPipe para la DEMO (app separada en Steamworks). Reemplazar 1000010 / 1000011.
+"AppBuild"
+{
+	"AppID" "1000010"
+	"Desc" "Voidling Demo v0.2.0"
+	"ContentRoot" "..\..\out\VoidlingDemo-win32-x64\"
+	"BuildOutput" "..\..\out\steampipe-output-demo\"
+	"SetLive" ""
+	"Preview" "0"
+	"Depots"
+	{
+		"1000011"
+		{
+			"FileMapping"
+			{
+				"LocalPath" "*"
+				"DepotPath" "."
+				"Recursive" "1"
+			}
+			"FileExclusion" "steam_appid.txt"
+		}
+	}
+}

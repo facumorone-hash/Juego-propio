@@ -1,0 +1,14 @@
+// Depot de Windows del juego completo. Reemplazar 1000001 por el DepotID real.
+"DepotBuild"
+{
+	"DepotID" "1000001"
+	"FileMapping"
+	{
+		"LocalPath" "*"
+		"DepotPath" "."
+		"Recursive" "1"
+	}
+	// steam_appid.txt nunca debe ir al depot (solo sirve para pruebas fuera de Steam)
+	"FileExclusion" "steam_appid.txt"
+	"FileExclusion" "*.pdb"
+}

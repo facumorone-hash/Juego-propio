@@ -1,0 +1,12 @@
+{
+  "name": "voidling-store-art",
+  "private": true,
+  "description": "Exportador headless del arte de tienda de VOIDLING (independiente del package.json raiz)",
+  "scripts": {
+    "export": "node export.js",
+    "shots": "node trailer-shots.js"
+  },
+  "dependencies": {
+    "playwright-core": "1.48.2"
+  }
+}

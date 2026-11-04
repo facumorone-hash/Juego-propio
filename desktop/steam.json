@@ -1,0 +1,6 @@
+{
+  "_comentario": "AppIDs de Steam. 480 = Spacewar (app de pruebas de Valve). Reemplazar por los AppIDs reales al crear la app y la demo en Steamworks. restartViaSteam: si es true y el exe se abre fuera de Steam, se relanza a través de Steam (solo con un AppID real).",
+  "appId": 480,
+  "demoAppId": 480,
+  "restartViaSteam": false
+}

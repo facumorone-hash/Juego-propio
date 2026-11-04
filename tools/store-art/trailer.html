@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Voidling Trailer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#ece8ff;font-family:"Segoe UI",system-ui,sans-serif}
+canvas{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:block;background:#000}
+body.rec{cursor:none}
+#help{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(640px,92vw);background:rgba(10,7,24,.94);
+  border:1px solid rgba(170,150,255,.3);border-radius:14px;padding:22px 26px;font-size:14.5px;line-height:1.6;box-shadow:0 20px 80px rgba(0,0,0,.7);z-index:2}
+#help h1{font-size:22px;letter-spacing:.18em;font-weight:900;margin-bottom:8px;background:linear-gradient(180deg,#fff,#ffd2a8 45%,#ff8a3c 70%,#9b5cff);-webkit-background-clip:text;background-clip:text;color:transparent}
+#help kbd{background:#1d1640;border:1px solid rgba(170,150,255,.35);border-radius:5px;padding:1px 7px;font-family:inherit;font-weight:700}
+#help .dim{color:#9a93c2;font-size:13px}
+#help.hidden,#clock.hidden{display:none}
+#clock{position:fixed;right:10px;bottom:8px;font:12px Consolas,monospace;color:#9a93c2;background:rgba(0,0,0,.55);padding:3px 7px;border-radius:5px;z-index:2}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="help">
+  <h1>VOIDLING · MODO TRÁILER</h1>
+  <p><kbd>ESPACIO</kbd> o clic: empezar / pausar &nbsp;·&nbsp; <kbd>R</kbd> reiniciar &nbsp;·&nbsp; <kbd>F</kbd> pantalla completa</p>
+  <p><kbd>←</kbd> <kbd>→</kbd> saltar ±5 s (ensayo) &nbsp;·&nbsp; <kbd>L</kbd> idioma ES/EN &nbsp;·&nbsp; <kbd>T</kbd> reloj &nbsp;·&nbsp; <kbd>H</kbd> ocultar esta ayuda</p>
+  <p class="dim">Para grabar: pon OBS a grabar, pulsa <kbd>F</kbd>, luego <kbd>ESPACIO</kbd>. Hay 1 s de negro antes del primer plano y el tráiler dura ~56 s. Sin HUD, sin cursor. Parámetros de URL: <code>?lang=en</code>, <code>?res=1080|1440|2160</code> (resolución interna fija), <code>?seed=11</code>, <code>?start=20</code>, <code>?autostart=1</code>. Guion completo en <code>docs/STEAM_PAGE.md</code>.</p>
+  <p class="dim" id="langInfo"></p>
+</div>
+<div id="clock" class="hidden"></div>
+<script src="../../js/config.js"></script>
+<script src="../../js/core.js"></script>
+<script src="../../js/upgrades.js"></script>
+<script src="../../js/run.js"></script>
+<script src="../../js/render.js"></script>
+<script src="art.js"></script>
+<script src="trailer.js"></script>
+</body>
+</html>

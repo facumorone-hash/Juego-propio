@@ -1,0 +1,19 @@
+# Dependencias y salidas de build
+node_modules/
+dist/
+out/
+
+# Solo para desarrollo con Steam (no se sube a Steam ni al repositorio)
+steam_appid.txt
+
+# Varios
+*.log
+.DS_Store
+Thumbs.db
+
+# Fuentes origen (27 MB; se descargan de google/fonts, ver tools/fonts/build-fonts.js)
+tools/fonts/src/
+
+# Salidas de pruebas
+tools/e2e/out/
+npm-install.log

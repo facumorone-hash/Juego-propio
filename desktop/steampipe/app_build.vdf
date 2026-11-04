@@ -1,0 +1,16 @@
+// Script de SteamPipe para el juego completo. Reemplazar 1000000 (AppID) y 1000001 (DepotID) por los reales.
+// Uso (desde la carpeta sdk/tools/ContentBuilder/builder del SDK de Steamworks):
+//   steamcmd +login <usuario> +run_app_build "<ruta>\desktop\steampipe\app_build.vdf" +quit
+"AppBuild"
+{
+	"AppID" "1000000"
+	"Desc" "Voidling v0.2.0"
+	"ContentRoot" "..\..\out\Voidling-win32-x64\"
+	"BuildOutput" "..\..\out\steampipe-output\"
+	"SetLive" ""     // vacío: el build se sube sin publicar; se pone live a mano en Steamworks (o "beta")
+	"Preview" "0"    // "1" = simula la subida sin enviar nada
+	"Depots"
+	{
+		"1000001" "depot_build.vdf"
+	}
+}
