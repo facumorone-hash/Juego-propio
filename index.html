@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="es" data-input="mouse">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Voidling</title>
+<style>
+/* Todas las medidas de la interfaz van en rem: 1rem = 10px × escala de interfaz (--ui, ajuste 80–140 %). */
+:root{
+  --bg:#05030d; --panel:rgba(14,10,32,.9); --line:rgba(170,150,255,.22);
+  --text:#ece8ff; --dim:#a29bcb; --accent:#ff9a3c; --accent2:#b98bff; --good:#47f0a0; --bad:#ff5470; --warn:#ffcf5e;
+  --focus:#ffffff; --ui:1; --tfs:1;
+}
+html.cb{--good:#56b4e9; --bad:#ff6d1f; --warn:#f0e442}
+html{font-size:calc(10px * var(--ui))}
+@media (max-width:640px),(max-height:520px){ html{font-size:calc(8.6px * var(--ui))} }
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:var(--font);user-select:none;-webkit-user-select:none;touch-action:none}
+/* Pila con respaldo CJK (el navegador busca cada glifo en orden). En japonés, fuente japonesa primero
+   para que los kanji no salgan con la forma china. La del canvas está en js/i18n.js (V.FONT). */
+/* Fuentes CJK incluidas (Noto Sans recortada a los caracteres del juego; licencia en fonts/OFL.txt).
+   Regenerar con: node tools/fonts/build-fonts.js */
+@font-face{font-family:"Voidling SC";src:url("fonts/voidling-sc.woff2") format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Voidling JP";src:url("fonts/voidling-jp.woff2") format("woff2");font-weight:100 900;font-display:swap}
+:root{--font:"Segoe UI",system-ui,-apple-system,Roboto,"Noto Sans","Microsoft YaHei","PingFang SC","Noto Sans CJK SC","Noto Sans SC","Yu Gothic UI","Meiryo","Voidling SC",sans-serif;
+  --mono:"Cascadia Mono","Consolas","DejaVu Sans Mono",ui-monospace,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC","Noto Sans SC","Yu Gothic UI","Meiryo","Voidling SC",monospace}
+html[lang=ja]{--font:"Segoe UI","Yu Gothic UI","Meiryo","Noto Sans CJK JP",system-ui,"Microsoft YaHei","Noto Sans CJK SC","Voidling JP","Voidling SC",sans-serif;
+  --mono:"Cascadia Mono","Consolas",ui-monospace,"Yu Gothic UI","Meiryo","Noto Sans CJK JP","Microsoft YaHei","Voidling JP","Voidling SC",monospace}
+/* textos largos (alemán, ruso) y sin espacios (CJK): ajuste de línea en vez de desbordar */
+button,.sub,.tag,.card h2,.srow > span,#tooltip,.pill,.stats .k,.stats .v,#treeHint,#cfTitle,#tText,.alog,#demoText{overflow-wrap:anywhere}
+:is(html[lang^=zh],html[lang=ja]) :is(button,.card h2,.thead,.badge,.setsec h3,.logo,.tag,.pill .lbl,#tooltip .tb){letter-spacing:.04em}
+/* Transmisiones en CJK: sin monoespaciada latina (cae a SimSun con serifa); gótica legible */
+:lang(ja) #tText{font-family:"BIZ UDGothic","Yu Gothic UI","Meiryo","Noto Sans CJK JP","Cascadia Mono",monospace}
+:lang(zh-CN) #tText,:lang(zh) #tText{font-family:"Microsoft YaHei","PingFang SC","Noto Sans CJK SC","Noto Sans SC","Cascadia Mono",monospace}
+body{font-size:1.5rem}
+canvas{position:fixed;inset:0;display:block}
+html[data-input=pad], html[data-input=pad] *{cursor:none!important}
+#ui{position:fixed;inset:0;pointer-events:none}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;justify-content:safe center;gap:1.4rem;
+  pointer-events:auto;padding:max(1.6rem,env(safe-area-inset-top)) 1.6rem max(1.6rem,env(safe-area-inset-bottom));overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
+.dim{background:radial-gradient(ellipse at center,rgba(5,3,13,.6),rgba(5,3,13,.92))}
+/* victoria: se ve detrás el universo joven del epílogo */
+#victory.dim{background:radial-gradient(ellipse at center,rgba(5,3,13,.1),rgba(5,3,13,.78));justify-content:flex-end;justify-content:safe flex-end;padding-bottom:max(5vh,1rem)}
+/* (la tarjeta va abajo: arriba sigue a la vista la mota que crece, el nuevo Voidling) */
+.hidden{display:none!important}
+
+/* transiciones suaves entre pantallas */
+.screen:not(.hidden){animation:scrIn .26s ease-out both}
+.screen:not(.hidden) > .card{animation:cardIn .34s cubic-bezier(.2,.8,.2,1) both}
+@keyframes scrIn{from{opacity:0}}
+@keyframes cardIn{from{opacity:0;transform:translateY(1.4rem) scale(.98)}}
+#fader{position:fixed;inset:0;background:var(--bg);opacity:0;pointer-events:none;z-index:30}
+#fader.go{animation:fadeOut .45s ease-out}
+@keyframes fadeOut{from{opacity:.9}to{opacity:0}}
+@media (prefers-reduced-motion:reduce){ .screen:not(.hidden),.screen:not(.hidden) > .card{animation-duration:.01s} }
+
+.logo{font-size:clamp(4.4rem,11vw,12.8rem);font-weight:900;letter-spacing:.18em;margin-right:-.18em;line-height:1;
+  background:linear-gradient(180deg,#fff 0%,#ffd2a8 45%,#ff8a3c 70%,#9b5cff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 30px rgba(255,140,60,.35))}
+.tag{color:var(--dim);font-size:clamp(1.4rem,2.2vw,1.9rem);letter-spacing:.06em;margin-bottom:1.6rem;text-align:center;max-width:90vw}
+
+button{pointer-events:auto;font:inherit;cursor:pointer;border:1px solid var(--line);background:rgba(20,14,44,.78);color:var(--text);
+  padding:1.25rem 2.8rem;min-width:min(26rem,100%);max-width:100%;border-radius:1rem;font-size:1.6rem;font-weight:700;letter-spacing:.14em;
+  white-space:normal;line-height:1.25;hyphens:auto;
+  transition:transform .08s,background .15s,border-color .15s,box-shadow .15s;outline:none}
+button:hover{background:rgba(48,32,96,.88);border-color:rgba(200,180,255,.5);transform:translateY(-1px)}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.5;cursor:default}
+button.primary{background:linear-gradient(180deg,#ff9a3c,#e8622a);border-color:#ffb36b;color:#1a0b02;box-shadow:0 0 28px rgba(255,130,50,.35)}
+button.primary:hover{background:linear-gradient(180deg,#ffab55,#f0703a)}
+button.ad{background:linear-gradient(180deg,#8f5bff,#5d34c9);border-color:#b98bff}
+button.small{min-width:0;padding:.9rem 1.6rem;font-size:1.35rem}
+button.danger{border-color:rgba(255,84,112,.45);color:#ffc2cc}
+
+/* foco visible (mando / teclado) */
+html[data-input=pad] :is(button,select,[data-nav]):focus,
+html[data-input=key] :is(button,select,[data-nav]):focus,
+:is(button,select,[data-nav]):focus-visible{
+  outline:none;border-color:var(--focus);box-shadow:0 0 0 .3rem rgba(255,255,255,.9),0 0 2.6rem .3rem rgba(185,139,255,.75);transform:scale(1.04)}
+html[data-input=pad] button.primary:focus,html[data-input=key] button.primary:focus,button.primary:focus-visible{
+  box-shadow:0 0 0 .3rem #fff,0 0 3.2rem .4rem rgba(255,150,60,.8)}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:1.6rem;padding:2.6rem 3rem;width:auto;min-width:min(44rem,100%);max-width:min(92vw,76rem);
+  box-shadow:0 20px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;align-items:center;gap:1.4rem;flex-shrink:0}
+.card h2{font-size:3rem;letter-spacing:.2em;margin-right:-.2em;font-weight:900;text-align:center}
+.sub{color:var(--dim);text-align:center;font-size:1.45rem;max-width:46rem;line-height:1.45}
+.keys{color:#7f78a8;font-size:1.25rem;letter-spacing:.06em;text-align:center}
+.stats{display:grid;grid-template-columns:1fr auto;gap:.8rem 2.8rem;width:100%;margin:.6rem 0;font-size:1.55rem}
+.stats .k{color:var(--dim)} .stats .v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.stats .v.big{color:var(--accent);font-size:2.2rem}
+.badge{background:linear-gradient(90deg,#ffcf5e,#ff8a3c);color:#1a0b02;font-weight:900;letter-spacing:.12em;padding:.6rem 1.4rem;border-radius:999px;font-size:1.3rem}
+.row{display:flex;gap:1.2rem;flex-wrap:wrap;justify-content:center}
+.col{display:flex;flex-direction:column;gap:1.2rem;align-items:center;width:100%}
+
+/* Ajustes */
+#settings .card{max-width:min(94vw,96rem)}
+.setgrid{display:grid;grid-template-columns:1fr;gap:1.4rem 3rem;width:100%}
+@media (min-width:900px){ .setgrid{grid-template-columns:1fr 1fr} }
+.setsec{display:flex;flex-direction:column;gap:.4rem;min-width:0}
+.setsec h3{font-size:1.2rem;letter-spacing:.2em;color:var(--accent2);font-weight:800;margin:.2rem 0 .4rem 1.2rem}
+.srow{display:grid;grid-template-columns:minmax(0,1fr) 15rem 5rem;align-items:center;gap:1.2rem;padding:.75rem 1.2rem;border-radius:1rem;
+  border:1px solid transparent;font-size:1.5rem;cursor:pointer;min-height:4.6rem}
+.srow:hover{background:rgba(170,150,255,.06)}
+.srow:focus-within{background:rgba(185,139,255,.14);border-color:rgba(200,180,255,.45)}
+.srow output{color:var(--dim);font-variant-numeric:tabular-nums;font-size:1.35rem;text-align:right}
+.srow .ctl{display:flex;justify-content:flex-end}
+@media (max-width:640px){ .srow{grid-template-columns:minmax(0,1fr) 12rem 4.4rem} .card{padding:2rem 1.6rem} }
+input[type=range]{width:100%;height:2.6rem;accent-color:var(--accent);cursor:pointer;background:transparent}
+input[type=range]:focus{outline:none}
+select{font:inherit;font-size:1.45rem;background:#140e2c;color:var(--text);border:1px solid var(--line);border-radius:.8rem;padding:.6rem 1rem;width:100%;cursor:pointer}
+input[type=checkbox]{appearance:none;-webkit-appearance:none;width:5rem;height:2.8rem;border-radius:2rem;background:#2a2150;border:1px solid var(--line);
+  position:relative;cursor:pointer;transition:background .15s;flex-shrink:0;outline:none}
+input[type=checkbox]::after{content:'';position:absolute;top:.35rem;left:.35rem;width:2rem;height:2rem;border-radius:50%;background:#9a93c2;transition:transform .15s,background .15s}
+input[type=checkbox]:checked{background:linear-gradient(180deg,#ff9a3c,#e8622a);border-color:#ffb36b}
+input[type=checkbox]:checked::after{transform:translateX(2.2rem);background:#fff}
+.setfoot{display:flex;gap:1.2rem;flex-wrap:wrap;justify-content:center;width:100%;margin-top:.4rem}
+
+/* Árbol */
+#treebar{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:1.2rem 1.6rem;padding:1.4rem 1.8rem;pointer-events:none;flex-wrap:nowrap}
+#treebar > *{pointer-events:auto;flex-shrink:0}
+#treebar .grow{flex:1 1 0;min-width:0}
+#treebar button{white-space:nowrap}
+#treebar .small{letter-spacing:.08em}
+#treebar .gl{margin-left:0}
+/* main.js (fitTreebar) añade estas clases por pasos si la barra no cabe en una fila */
+#treebar.compact{gap:.8rem 1rem;padding:1.2rem 1.4rem}
+#treebar.compact .small{padding:.8rem 1rem;letter-spacing:.03em}
+#treebar.compact .pill{padding:.6rem 1.2rem}
+#treebar.compact #treeStart{min-width:0;padding:1.1rem 2rem}
+#treebar.tight .small:has(.gl) .bt{display:none}
+#treebar.tight .small{padding:.8rem .8rem;font-size:1.25rem}
+#treebar.wrap{flex-wrap:wrap}
+#treebar.wrap > *{flex-shrink:1}
+.pill{background:var(--panel);border:1px solid var(--line);border-radius:1.2rem;padding:.8rem 1.6rem;font-weight:800;font-variant-numeric:tabular-nums}
+.pill .lbl{color:var(--dim);font-weight:600;font-size:1.2rem;letter-spacing:.12em;display:block}
+.pill .num{font-size:2.2rem;color:var(--accent)}
+#tbRecord{font-size:1.6rem}
+.grow{flex:1}
+#treeStart{min-width:20rem}
+#treeHint{position:absolute;bottom:1.8rem;left:50%;transform:translateX(-50%);color:var(--dim);font-size:1.35rem;text-align:center;background:var(--panel);
+  border:1px solid var(--line);padding:.8rem 1.4rem;border-radius:1rem;max-width:92vw;line-height:1.7}
+#tooltip{position:absolute;max-width:min(34rem,90vw);background:rgba(10,7,24,.96);border:1px solid var(--line);border-radius:1.2rem;padding:1.2rem 1.4rem;
+  pointer-events:none;font-size:1.4rem;line-height:1.4;box-shadow:0 10px 40px rgba(0,0,0,.6);z-index:5}
+#tooltip .tn{font-size:1.65rem;font-weight:900;letter-spacing:.04em;margin-bottom:.2rem}
+#tooltip .tb{font-size:1.15rem;letter-spacing:.16em;color:var(--dim);margin-bottom:.6rem;text-transform:uppercase}
+#tooltip .td{color:#d6d0f5;margin-bottom:.8rem}
+#tooltip .tl{display:flex;justify-content:space-between;gap:1.2rem;color:var(--dim)}
+#tooltip .tl b{color:var(--text)}
+#tooltip .cost{margin-top:.6rem;font-weight:900;font-size:1.55rem}
+#tooltip .tk{margin-top:.6rem;color:var(--dim);font-size:1.3rem}
+#tooltip .ok{color:var(--good)} #tooltip .no{color:var(--bad)} #tooltip .lock{color:var(--warn)}
+
+#menu{padding-bottom:5rem}
+#menuFoot{position:absolute;bottom:1.4rem;left:0;right:0;text-align:center;color:#6a6394;font-size:1.2rem;letter-spacing:.1em}
+
+/* Transmisiones */
+#trans{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:0 1.6rem 7vh;pointer-events:auto;cursor:pointer;
+  background:linear-gradient(0deg,rgba(5,3,13,.85),rgba(5,3,13,.2) 60%,rgba(5,3,13,0));z-index:4;animation:scrIn .3s ease-out}
+.tcard{width:min(calc(72rem * var(--tfs)),100%);max-height:80vh;overflow:auto;background:rgba(8,6,20,.94);border:1px solid var(--tc,#7fe3ff);border-radius:1.4rem;padding:1.8rem 2.2rem;
+  box-shadow:0 0 40px rgba(0,0,0,.6),0 0 24px color-mix(in srgb,var(--tc,#7fe3ff) 25%,transparent)}
+.thead{display:flex;align-items:center;gap:1rem;font-size:1.2rem;font-weight:800;letter-spacing:.16em;color:var(--tc,#7fe3ff);margin-bottom:1rem;flex-wrap:wrap}
+.tdot{width:.9rem;height:.9rem;border-radius:50%;background:var(--tc,#7fe3ff);box-shadow:0 0 10px var(--tc,#7fe3ff);animation:blink 1s infinite}
+html.rf .tdot{animation:none}
+.tinc{margin-left:auto;color:var(--dim);font-weight:600}
+#tText{font-size:calc(clamp(1.5rem,2.2vw,1.85rem) * var(--tfs));line-height:1.55;min-height:3.2em;color:#ece8ff;font-family:var(--mono);white-space:pre-wrap}
+.tfoot{margin-top:1rem;font-size:1.2rem;color:var(--dim);text-align:right;letter-spacing:.1em}
+@keyframes blink{50%{opacity:.25}}
+
+/* listas con scroll */
+.scroll{overflow-x:hidden;overflow-y:auto;width:min(64rem,84vw);text-align:left;padding-right:.8rem;border-radius:.8rem;outline:none;
+  scrollbar-width:thin;scrollbar-color:rgba(185,139,255,.45) transparent}
+.scroll::-webkit-scrollbar,.screen::-webkit-scrollbar,.tcard::-webkit-scrollbar,#demoText::-webkit-scrollbar{width:.8rem;height:0}
+.scroll::-webkit-scrollbar-thumb,.screen::-webkit-scrollbar-thumb,.tcard::-webkit-scrollbar-thumb,#demoText::-webkit-scrollbar-thumb{background:rgba(185,139,255,.4);border-radius:1rem}
+.scroll::-webkit-scrollbar-track,.screen::-webkit-scrollbar-track,.tcard::-webkit-scrollbar-track,#demoText::-webkit-scrollbar-track{background:transparent}
+.screen,.tcard,#demoText{scrollbar-width:thin;scrollbar-color:rgba(185,139,255,.45) transparent}
+html[data-input=pad] .scroll:focus,html[data-input=key] .scroll:focus{box-shadow:inset 0 0 0 .2rem rgba(255,255,255,.5)}
+#archList{max-height:58vh;display:flex;flex-direction:column;gap:1.2rem}
+.alog{border-left:3px solid var(--tc);padding:.4rem 0 .4rem 1.2rem;font-size:calc(1.45rem * var(--tfs));line-height:1.5;color:#d6d0f5}
+.afrom{font-size:1.15rem;font-weight:800;letter-spacing:.14em;color:var(--tc);margin-bottom:.3rem}
+.empty{color:var(--dim);text-align:center;padding:2rem}
+
+/* Créditos / fin de demo */
+#credList{max-height:60vh;text-align:center;line-height:1.55;font-size:1.5rem;white-space:pre-line}
+#credList .ch{font-size:1.15rem;letter-spacing:.22em;color:var(--accent2);font-weight:800;margin-top:1.6rem}
+#credList .ct{font-size:3.2rem;font-weight:900;letter-spacing:.2em;margin-right:-.2em;
+  background:linear-gradient(180deg,#fff,#ffb36b);-webkit-background-clip:text;background-clip:text;color:transparent}
+#credList .cl{color:#d6d0f5}
+#credList .sp{height:1rem}
+#demoText{white-space:pre-line;color:#d6d0f5;text-align:center;line-height:1.55;max-width:56rem;max-height:46vh;overflow:auto}
+#statsList{width:min(52rem,84vw)}
+
+/* glifos de mando */
+.gl{display:inline-flex;align-items:center;justify-content:center;min-width:1.85em;height:1.85em;padding:0 .45em;border-radius:1em;background:#2a2150;
+  border:1px solid rgba(255,255,255,.35);color:#fff;font-weight:900;font-size:.82em;letter-spacing:0;vertical-align:middle;margin:0 .12em;line-height:1;font-style:normal}
+.gl.gA.xbox{background:#2f9e44} .gl.gB.xbox{background:#c92a2a} .gl.gX.xbox{background:#1c7ed6} .gl.gY.xbox{background:#d9a400;color:#1a1200}
+.gl.gA.ps{background:#3b5bdb} .gl.gB.ps{background:#c92a2a} .gl.gX.ps{background:#c2255c} .gl.gY.ps{background:#2f9e44}
+button.primary .gl{background:rgba(26,11,2,.85);border-color:rgba(26,11,2,.4)}
+
+#toast{position:absolute;top:1.6rem;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:1rem;
+  padding:.9rem 1.6rem;font-size:1.4rem;font-weight:700;letter-spacing:.06em;z-index:9;pointer-events:none;transition:opacity .3s;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+#toast.off{opacity:0}
+#confirm{z-index:7}
+#pauseNote{color:var(--warn)}
+
+@media (max-width:640px){
+  .pill .num{font-size:1.8rem}
+  #treeStart{min-width:14rem}
+  #treebar{padding:1rem}
+}
+@media (max-height:560px){ .card{padding:1.6rem 2rem;gap:1rem} .card h2{font-size:2.4rem} }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+
+  <div id="menu" class="screen" data-focus="btnPlay">
+    <div class="logo">VOIDLING</div>
+    <div class="tag" data-i18n="tagline"></div>
+    <button id="btnPlay" class="primary" data-i18n="play"></button>
+    <button id="btnSettings" data-i18n="settings"></button>
+    <button id="btnStats" data-i18n="stats"></button>
+    <button id="btnCredits" data-i18n="credits"></button>
+    <button id="btnFull" data-i18n="fullscreen"></button>
+    <button id="btnStore" class="hidden" data-i18n="viewStore"></button>
+    <button id="btnQuit" class="hidden" data-i18n="quit"></button>
+    <div id="menuFoot"><span id="verTag">v</span> · <span data-i18n="madeWith"></span></div>
+  </div>
+
+  <div id="results" class="screen dim hidden" data-focus="btnUpgrade" data-enter="btnRetry" data-x="btnRetry">
+    <div class="card">
+      <h2 data-i18n="resultsTitle"></h2>
+      <div class="sub" data-i18n="resultsSub"></div>
+      <div id="resBadge" class="badge hidden"></div>
+      <div class="stats" id="resStats"></div>
+      <div class="col">
+        <button id="btnUpgrade" class="primary" data-i18n="upgrade"></button>
+        <button id="btnRetry" data-i18n="retry"></button>
+        <button id="btnDouble" class="ad hidden" data-i18n="double"></button>
+      </div>
+      <div class="keys" data-i18n="resKeys"></div>
+    </div>
+  </div>
+
+  <div id="treebar" class="hidden">
+    <div class="pill"><span class="lbl" data-i18n="matter"></span><span class="num" id="tbMatter">0</span></div>
+    <div class="pill"><span class="lbl" data-i18n="record"></span><span id="tbRecord"></span></div>
+    <div class="grow"></div>
+    <button id="treeMenu" class="small" data-i18n="menu"></button>
+    <button id="treeStats" class="small" data-i18n="treeStats"></button>
+    <button id="treeArchive" class="small" data-i18n="archive"></button>
+    <button id="treeStart" class="primary" data-i18n="startRun"></button>
+  </div>
+  <div id="treeHint" class="hidden" data-i18n="treeHint"></div>
+  <div id="tooltip" class="hidden"></div>
+
+  <div id="settings" class="screen dim hidden" data-back="btnSetBack" data-focus="setMusic">
+    <div class="card">
+      <h2 data-i18n="settings"></h2>
+      <div class="setgrid">
+        <div class="setsec">
+          <h3 data-i18n="secAudio"></h3>
+          <label class="srow"><span data-i18n="music"></span><span class="ctl"><input id="setMusic" type="range" min="0" max="1" step="0.05"></span><output id="outMusic"></output></label>
+          <label class="srow"><span data-i18n="sfx"></span><span class="ctl"><input id="setSfx" type="range" min="0" max="1" step="0.05"></span><output id="outSfx"></output></label>
+          <h3 data-i18n="secGeneral"></h3>
+          <label class="srow"><span data-i18n="language"></span><span class="ctl"><select id="setLang"></select></span><output></output></label>
+          <label class="srow"><span data-i18n="rumble"></span><span class="ctl"><input id="setRumble" type="checkbox"></span><output></output></label>
+        </div>
+        <div class="setsec">
+          <h3 data-i18n="secAccess"></h3>
+          <label class="srow"><span data-i18n="uiScale"></span><span class="ctl"><input id="setUiScale" type="range" min="80" max="140" step="10"></span><output id="outUiScale"></output></label>
+          <label class="srow"><span data-i18n="transSize"></span><span class="ctl"><input id="setTransSize" type="range" min="80" max="150" step="10"></span><output id="outTransSize"></output></label>
+          <label class="srow"><span data-i18n="colorblind"></span><span class="ctl"><input id="setColorblind" type="checkbox"></span><output></output></label>
+          <label class="srow"><span data-i18n="shake"></span><span class="ctl"><input id="setShake" type="checkbox"></span><output></output></label>
+          <label class="srow"><span data-i18n="flashes"></span><span class="ctl"><input id="setFlash" type="checkbox"></span><output></output></label>
+          <label class="srow"><span data-i18n="numbers"></span><span class="ctl"><input id="setNumbers" type="checkbox"></span><output></output></label>
+        </div>
+      </div>
+      <div class="setfoot">
+        <button id="btnReset" class="small danger" data-i18n="reset"></button>
+        <button id="btnSetBack" class="primary" data-i18n="back"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pause" class="screen dim hidden" data-back="btnResume" data-focus="btnResume">
+    <div class="card">
+      <h2 data-i18n="paused"></h2>
+      <div id="pauseNote" class="sub hidden"></div>
+      <button id="btnResume" class="primary" data-i18n="resume"></button>
+      <button id="btnPauseSettings" data-i18n="settings"></button>
+      <button id="btnAbandon" data-i18n="abandon"></button>
+      <button id="btnQuitMenu" data-i18n="quitMenu"></button>
+    </div>
+  </div>
+
+  <div id="archive" class="screen dim hidden" data-back="btnArchBack">
+    <div class="card">
+      <h2 data-i18n="archive"></h2>
+      <div id="archList" class="scroll" data-nav data-scroll tabindex="0"></div>
+      <button id="btnArchBack" class="primary" data-i18n="close"></button>
+    </div>
+  </div>
+
+  <div id="stats" class="screen dim hidden" data-back="btnStatsBack">
+    <div class="card">
+      <h2 data-i18n="statsTitle"></h2>
+      <div class="stats" id="statsList"></div>
+      <button id="btnStatsBack" class="primary" data-i18n="back"></button>
+    </div>
+  </div>
+
+  <div id="credits" class="screen dim hidden" data-back="btnCredBack">
+    <div class="card">
+      <h2 data-i18n="credits"></h2>
+      <div id="credList" class="scroll" data-nav data-scroll tabindex="0"></div>
+      <button id="btnCredBack" class="primary" data-i18n="back"></button>
+    </div>
+  </div>
+
+  <div id="demoEnd" class="screen dim hidden" data-focus="btnWishlist">
+    <div class="card">
+      <h2 id="demoTitle" data-i18n="demoTitle"></h2>
+      <div id="demoText"></div>
+      <div class="col">
+        <button id="btnWishlist" class="primary" data-i18n="wishlist"></button>
+        <button id="btnDemoKeep" data-i18n="keepDemo"></button>
+        <button id="btnDemoMenu" data-i18n="menu"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="trans" class="hidden">
+    <div class="tcard">
+      <div class="thead"><span class="tdot"></span><span id="tFrom"></span><span class="tinc" data-i18n="incoming"></span></div>
+      <div id="tText"></div>
+      <div class="tfoot" data-i18n="tapContinue"></div>
+    </div>
+  </div>
+
+  <div id="victory" class="screen dim hidden">
+    <div class="card">
+      <h2 data-i18n="victoryTitle"></h2>
+      <div class="sub" data-i18n="victoryText"></div>
+      <div class="sub" id="victoryStats"></div>
+      <button id="btnVictory" class="primary" data-i18n="keepPlaying"></button>
+      <button id="btnVictoryCredits" data-i18n="viewCredits"></button>
+    </div>
+  </div>
+
+  <div id="confirm" class="screen dim overlay hidden" data-back="cfNo" data-focus="cfNo">
+    <div class="card">
+      <h2 id="cfTitle"></h2>
+      <div class="sub" id="cfText"></div>
+      <div class="row">
+        <button id="cfNo" data-i18n="cancel"></button>
+        <button id="cfYes" class="primary"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="off"></div>
+</div>
+<div id="fader"></div>
+<!-- Build para CrazyGames: descomentar la siguiente línea -->
+<!-- <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script> -->
+<script src="js/config.js"></script>
+<script src="js/core.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/strings-gameplay.js"></script>
+<script src="js/upgrades.js"></script>
+<script src="js/run.js"></script>
+<script src="js/story.js"></script>
+<script src="js/save.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/platform.js"></script>
+<script src="js/render.js"></script>
+<script src="js/finale.js"></script>
+<script src="js/tree.js"></script>
+<script src="js/input.js"></script>
+<script src="js/achievements.js"></script>
+<script src="js/lang/pt-BR.js"></script>
+<script src="js/lang/zh-CN.js"></script>
+<script src="js/lang/ru.js"></script>
+<script src="js/lang/de.js"></script>
+<script src="js/lang/ja.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

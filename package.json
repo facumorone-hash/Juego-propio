@@ -1,0 +1,30 @@
+{
+  "name": "voidling",
+  "productName": "Voidling",
+  "version": "1.0.0",
+  "description": "Voidling - incremental roguelite cósmico",
+  "private": true,
+  "main": "desktop/main.js",
+  "author": "Voidling",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron . --dev",
+    "start:steam": "node tools/build.js steam && electron .",
+    "build:web": "node tools/build.js web",
+    "build:crazygames": "node tools/build.js crazygames",
+    "build:demo": "node tools/build.js demo",
+    "build:steam": "node tools/build.js steam",
+    "build:all": "node tools/build.js all",
+    "icon": "node desktop/make-icon.js",
+    "dist:win": "node desktop/package-win.js steam",
+    "dist:win:demo": "node desktop/package-win.js demo",
+    "check": "node tools/build.js check"
+  },
+  "dependencies": {
+    "steamworks.js": "^0.4.0"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^45.2.2"
+  }
+}
